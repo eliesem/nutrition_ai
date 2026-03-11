@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NutritionAI — Analyse protéique</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f7fafc; color: #2d3748; }
+
+    header {
+      background: #1a365d;
+      color: white;
+      padding: 24px 40px;
+    }
+    header h1 { font-size: 24px; font-weight: 700; }
+    header p { font-size: 14px; opacity: 0.8; margin-top: 4px; }
+
+    main { max-width: 860px; margin: 40px auto; padding: 0 20px; }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+    }
+    .card h2 { font-size: 16px; font-weight: 600; color: #1a365d; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .conclusion-prealable {
+      background: #ebf8ff;
+      border: 2px solid #4299e1;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .conclusion-prealable h3 {
+      color: #2b6cb0;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+    .conclusion-prealable p { color: #2a4a7f; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
+    label { display: block; font-size: 13px; font-weight: 500; color: #4a5568; margin-bottom: 6px; }
+    input[type="number"], input[type="text"], textarea {
+      width: 100%;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: #2d3748;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #4299e1; }
+    textarea { resize: vertical; min-height: 200px; line-height: 1.6; }
+
+    button.primary {
+      background: #2b6cb0;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 32px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    button.primary:hover { background: #1a365d; }
+    button.primary:disabled { background: #a0aec0; cursor: not-allowed; }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 40px;
+      color: #4a5568;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #2b6cb0;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result { display: none; }
+
+    .conclusion-box {
+      background: #f0fff4;
+      border: 2px solid #48bb78;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .conclusion-box h3 {
+      color: #276749;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .conclusion-box p { color: #22543d; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
+
+    details { border: 1.5px solid #e2e8f0; border-radius: 8px; }
+    summary {
+      padding: 14px 18px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #4a5568;
+      user-select: none;
+    }
+    summary:hover { color: #2b6cb0; }
+    .full-text {
+      padding: 18px;
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      color: #4a5568;
+      border-top: 1px solid #e2e8f0;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .error-box {
+      display: none;
+      background: #fff5f5;
+      border: 2px solid #fc8181;
+      border-radius: 8px;
+      padding: 16px;
+      color: #c53030;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>NutritionAI</h1>
+  <p>Analyse protéique HBV / LBV — Journal alimentaire</p>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Données patient</h2>
+    <div style="margin-bottom: 20px;">
+      <label for="patient">Description clinique du patient</label>
+      <textarea id="patient" style="min-height: 120px;" placeholder="Ex: Femme, 65 ans, 58 kg, taille 162 cm, insuffisance rénale chronique stade 3, dialyse 3x/semaine..."></textarea>
+    </div>
+    <div>
+      <label for="journal">Journal alimentaire</label>
+      <textarea id="journal" placeholder="Collez ici le journal alimentaire du patient...
+Ex:
+Petit-déjeuner : banane, pain noir x2, fromage blanc
+Déjeuner : salade de légumes, riz 2 cuillères, thon / bœuf / poisson
+..."></textarea>
+    </div>
+  </div>
+
+  <button class="primary" id="analyzeBtn" onclick="analyze()">Analyser le journal</button>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Analyse en cours — recherche des valeurs nutritionnelles et calcul des scénarios...</p>
+  </div>
+
+  <div class="result" id="result">
+    <div class="card">
+      <div class="conclusion-prealable">
+        <h3>Analyse clinique patient</h3>
+        <p id="conclusionPrealable"></p>
+      </div>
+      <div class="conclusion-box">
+        <h3>✓ Conclusion clinique finale</h3>
+        <p id="conclusionFinale"></p>
+      </div>
+      <details>
+        <summary>Voir l'analyse complète (calculs détaillés)</summary>
+        <div class="full-text" id="fullText"></div>
+      </details>
+    </div>
+  </div>
+</main>
+
+<script>
+  async function analyze() {
+    const patient = document.getElementById('patient').value.trim();
+    const journal = document.getElementById('journal').value.trim();
+
+    if (!patient) {
+      showError('Veuillez saisir la description clinique du patient.');
+      return;
+    }
+    if (!journal) {
+      showError('Veuillez saisir le journal alimentaire.');
+      return;
+    }
+
+    const btn = document.getElementById('analyzeBtn');
+    const loading = document.getElementById('loading');
+    const result = document.getElementById('result');
+    const errorBox = document.getElementById('errorBox');
+
+    btn.disabled = true;
+    loading.style.display = 'block';
+    result.style.display = 'none';
+    errorBox.style.display = 'none';
+
+    try {
+      const response = await fetch('/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient, journal })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Erreur serveur');
+      }
+
+      document.getElementById('conclusionPrealable').textContent = data.conclusion_prealable || 'Non disponible';
+      document.getElementById('conclusionFinale').textContent = data.conclusion_finale || 'Non disponible';
+      document.getElementById('fullText').textContent = data.full_response;
+      result.style.display = 'block';
+    } catch (err) {
+      showError('Erreur : ' + err.message);
+    } finally {
+      btn.disabled = false;
+      loading.style.display = 'none';
+    }
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = msg;
+    box.style.display = 'block';
+  }
+</script>
+
+</body>
+</html>
