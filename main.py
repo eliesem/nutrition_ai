@@ -208,7 +208,7 @@ Format de sortie obligatoire
 1️⃣ Analyse clinique préalable (avec le marqueur CONCLUSION_PREALABLE après la section E)
 2️⃣ Tableau nutritionnel unique
 3️⃣ Scénarios journaliers (5 scénarios avec calculs détaillés)
-4️⃣ Résumé final
+4️⃣ Résumé final 
 
 Consignes supplémentaires
 
