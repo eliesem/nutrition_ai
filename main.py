@@ -2,14 +2,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from google import genai
-from google.genai import types
+from openai import OpenAI
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -184,6 +183,12 @@ Ce tableau sert de référence unique pour tous les calculs.
 
 Créer 5 scénarios journaliers réalistes en combinant les différentes options du menu.
 
+RÈGLE ABSOLUE pour les scénarios :
+Avant de créer les scénarios, identifier et lister TOUS les groupes d'alternatives du journal (tous les groupes séparés par "/").
+Dans chaque scénario, choisir exactement UN SEUL aliment par groupe d'alternatives.
+Il est STRICTEMENT INTERDIT de prendre plusieurs aliments appartenant au même groupe "/", même si ces aliments apparaissent à des moments différents de la journée.
+Un aliment qui apparaît dans un groupe "/" n'est JAMAIS un aliment fixe — il est toujours une alternative.
+
 Pour chaque scénario, afficher la liste des aliments choisis puis calculer : total protéines, protéines HBV, protéines LBV, pourcentage HBV, pourcentage LBV.
 
 Ne pas créer de tableau séparé pour chaque scénario.
@@ -281,14 +286,12 @@ async def root():
 async def analyze(request: AnalysisRequest):
     prompt = build_prompt(request.patient, request.journal)
     try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-            )
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            tools=[{"type": "web_search"}],
+            input=prompt,
         )
-        full_text = response.text
+        full_text = response.output_text
         conclusions = extract_conclusions(full_text)
         return {
             "conclusion_prealable": conclusions["prealable"],
