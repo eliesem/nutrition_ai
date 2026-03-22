@@ -5,112 +5,366 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NutritionAI — Analyse protéique</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f7fafc; color: #2d3748; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f7fafc;
+      color: #2d3748;
+      min-height: 100vh;
+    }
 
+    /* ── Header ── */
     header {
       background: #1a365d;
       color: white;
-      padding: 24px 40px;
+      padding: 22px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    header h1 { font-size: 24px; font-weight: 700; }
-    header p { font-size: 14px; opacity: 0.8; margin-top: 4px; }
+    header h1 { font-size: 22px; font-weight: 700; }
+    header p { font-size: 13px; opacity: 0.75; margin-top: 3px; }
+    .btn-home {
+      background: rgba(255,255,255,0.12);
+      color: white;
+      border: 1.5px solid rgba(255,255,255,0.35);
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .btn-home:hover { background: rgba(255,255,255,0.22); }
 
-    main { max-width: 860px; margin: 40px auto; padding: 0 20px; }
+    /* ── Step indicator ── */
+    .steps-bar {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 18px 0;
+    }
+    .steps-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+    .step-item:last-child { flex: none; }
+    .step-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #a0aec0;
+      background: white;
+      flex-shrink: 0;
+      transition: all 0.25s;
+    }
+    .step-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #a0aec0;
+      white-space: nowrap;
+      transition: color 0.25s;
+    }
+    .step-connector {
+      flex: 1;
+      height: 2px;
+      background: #e2e8f0;
+      margin: 0 8px;
+      transition: background 0.25s;
+    }
 
+    /* active step */
+    .step-item.active .step-circle {
+      border-color: #2b6cb0;
+      background: #2b6cb0;
+      color: white;
+    }
+    .step-item.active .step-label { color: #2b6cb0; }
+
+    /* completed step */
+    .step-item.done .step-circle {
+      border-color: #48bb78;
+      background: #48bb78;
+      color: white;
+    }
+    .step-item.done .step-label { color: #276749; }
+    .step-connector.done { background: #48bb78; }
+
+    /* ── Main layout ── */
+    main { max-width: 860px; margin: 36px auto; padding: 0 20px 60px; }
+
+    /* ── Cards ── */
     .card {
       background: white;
       border-radius: 12px;
       padding: 32px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      margin-bottom: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
     }
-    .card h2 { font-size: 16px; font-weight: 600; color: #1a365d; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
-
-    .conclusion-prealable {
-      background: #ebf8ff;
-      border: 2px solid #4299e1;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 16px;
-    }
-    .conclusion-prealable h3 {
-      color: #2b6cb0;
-      font-size: 14px;
+    .card-title {
+      font-size: 13px;
       font-weight: 700;
+      color: #1a365d;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 12px;
+      letter-spacing: 0.06em;
+      margin-bottom: 22px;
     }
-    .conclusion-prealable p { color: #2a4a7f; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
-    label { display: block; font-size: 13px; font-weight: 500; color: #4a5568; margin-bottom: 6px; }
-    input[type="number"], input[type="text"], textarea {
+
+    /* ── Steps visibility ── */
+    .step-panel { display: none; }
+    .step-panel.visible { display: block; }
+
+    /* ── Form elements ── */
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #4a5568;
+      margin-bottom: 6px;
+    }
+    textarea, input[type="number"] {
       width: 100%;
       border: 1.5px solid #e2e8f0;
       border-radius: 8px;
       padding: 10px 14px;
       font-size: 14px;
       color: #2d3748;
-      transition: border-color 0.2s;
       font-family: inherit;
+      transition: border-color 0.2s;
     }
-    input:focus, textarea:focus { outline: none; border-color: #4299e1; }
-    textarea { resize: vertical; min-height: 200px; line-height: 1.6; }
+    textarea { resize: vertical; line-height: 1.6; }
+    textarea:focus, input[type="number"]:focus {
+      outline: none;
+      border-color: #4299e1;
+    }
 
-    button.primary {
+    /* ── Toggle buttons (auto / manual) ── */
+    .toggle-group {
+      display: flex;
+      gap: 0;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 22px;
+      width: fit-content;
+    }
+    .toggle-btn {
+      padding: 9px 22px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      background: white;
+      color: #718096;
+      transition: all 0.2s;
+    }
+    .toggle-btn.active {
+      background: #2b6cb0;
+      color: white;
+    }
+    .toggle-btn:first-child { border-right: 1.5px solid #e2e8f0; }
+
+    /* ── Two-column row ── */
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: end;
+    }
+    .manual-total {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2b6cb0;
+      padding: 10px 14px;
+      background: #ebf8ff;
+      border-radius: 8px;
+      border: 1.5px solid #bee3f8;
+    }
+
+    /* ── Buttons ── */
+    .btn-primary {
       background: #2b6cb0;
       color: white;
       border: none;
       border-radius: 8px;
-      padding: 12px 32px;
-      font-size: 15px;
+      padding: 12px 28px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      width: 100%;
       transition: background 0.2s;
     }
-    button.primary:hover { background: #1a365d; }
-    button.primary:disabled { background: #a0aec0; cursor: not-allowed; }
+    .btn-primary:hover { background: #1a365d; }
+    .btn-primary:disabled { background: #a0aec0; cursor: not-allowed; }
 
-    .loading {
-      display: none;
-      text-align: center;
-      padding: 40px;
+    .btn-success {
+      background: #38a169;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-success:hover { background: #276749; }
+
+    .btn-secondary {
+      background: white;
       color: #4a5568;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 11px 22px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .spinner {
-      width: 40px; height: 40px;
-      border: 4px solid #e2e8f0;
-      border-top-color: #2b6cb0;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 16px;
+    .btn-secondary:hover { border-color: #a0aec0; color: #2d3748; }
+
+    .btn-danger-outline {
+      background: white;
+      color: #e53e3e;
+      border: 1.5px solid #fc8181;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-danger-outline:hover { background: #fff5f5; }
 
-    .result { display: none; }
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
 
-    .conclusion-box {
+    /* ── Info boxes ── */
+    .box-blue {
+      background: #ebf8ff;
+      border: 2px solid #4299e1;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .box-blue .box-title {
+      color: #2b6cb0;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+    .box-blue .box-body { color: #2a4a7f; font-size: 14px; line-height: 1.75; white-space: pre-wrap; }
+
+    .box-green {
       background: #f0fff4;
       border: 2px solid #48bb78;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 20px;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
     }
-    .conclusion-box h3 {
+    .box-green .box-title {
       color: #276749;
-      font-size: 14px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+    .box-green .box-body { color: #22543d; font-size: 14px; line-height: 1.75; white-space: pre-wrap; }
+
+    .box-gray {
+      background: #f7fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 18px 22px;
+      margin-bottom: 16px;
+    }
+    .box-gray .box-title {
+      color: #4a5568;
+      font-size: 12px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      margin-bottom: 10px;
     }
-    .conclusion-box p { color: #22543d; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
+    .box-gray .box-body { color: #4a5568; font-size: 14px; line-height: 1.75; white-space: pre-wrap; }
 
-    details { border: 1.5px solid #e2e8f0; border-radius: 8px; }
+    .patient-tags {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .patient-tag {
+      background: #2b6cb0;
+      color: white;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* ── Error box ── */
+    .error-box {
+      display: none;
+      background: #fff5f5;
+      border: 2px solid #fc8181;
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: #c53030;
+      font-size: 13px;
+      margin-top: 14px;
+    }
+
+    /* ── Loading ── */
+    .loading-block {
+      display: none;
+      text-align: center;
+      padding: 36px 20px;
+      color: #4a5568;
+    }
+    .spinner {
+      width: 38px; height: 38px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #2b6cb0;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin: 0 auto 14px;
+    }
+    .loading-block p { font-size: 13px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Correction toggle ── */
+    .correction-area { display: none; margin-top: 16px; }
+
+    /* ── Collapsible sections ── */
+    details {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
     summary {
       padding: 14px 18px;
       cursor: pointer;
@@ -118,135 +372,889 @@
       font-weight: 500;
       color: #4a5568;
       user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+    summary::-webkit-details-marker { display: none; }
+    summary::before {
+      content: '▶';
+      font-size: 10px;
+      color: #a0aec0;
+      transition: transform 0.2s;
+    }
+    details[open] summary::before { transform: rotate(90deg); }
     summary:hover { color: #2b6cb0; }
-    .full-text {
+    .collapsible-body {
       padding: 18px;
+      border-top: 1px solid #e2e8f0;
       font-size: 13px;
       line-height: 1.7;
-      white-space: pre-wrap;
       color: #4a5568;
-      border-top: 1px solid #e2e8f0;
-      max-height: 500px;
+      max-height: 520px;
       overflow-y: auto;
     }
+    .full-text { white-space: pre-wrap; }
 
-    .error-box {
-      display: none;
-      background: #fff5f5;
-      border: 2px solid #fc8181;
-      border-radius: 8px;
-      padding: 16px;
-      color: #c53030;
+    /* ── Markdown table ── */
+    .md-table-wrap { overflow-x: auto; }
+    .md-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .md-table th {
+      background: #1a365d;
+      color: white;
+      padding: 9px 14px;
+      text-align: left;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .md-table td {
+      padding: 8px 14px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #2d3748;
+    }
+    .md-table tr:nth-child(even) td { background: #f7fafc; }
+    .md-table tr:hover td { background: #ebf8ff; }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 2px solid #e2e8f0;
+      margin: 28px 0;
+    }
+
+    /* ── Chat section ── */
+    .chat-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a365d;
+      margin-bottom: 6px;
+    }
+    .chat-subtitle {
+      font-size: 12px;
+      color: #718096;
+      margin-bottom: 18px;
+    }
+    .chat-history {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .bubble {
+      max-width: 78%;
+      padding: 11px 16px;
+      border-radius: 12px;
       font-size: 14px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
+    .bubble-user {
+      background: #2b6cb0;
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .bubble-assistant {
+      background: #f7fafc;
+      border: 1.5px solid #e2e8f0;
+      color: #2d3748;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .chat-input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .chat-input-row textarea {
+      flex: 1;
+      min-height: 60px;
+      max-height: 120px;
+    }
+    .chat-counter {
+      font-size: 12px;
+      color: #718096;
+      margin-top: 8px;
+      text-align: right;
+    }
+    .chat-limit-msg {
+      display: none;
+      background: #fffbeb;
+      border: 1.5px solid #f6e05e;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #744210;
+      margin-top: 12px;
+    }
+
+    /* ── Typing indicator ── */
+    .bubble-loading {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 14px 18px;
+    }
+    .typing-dot {
+      width: 8px; height: 8px;
+      background: #a0aec0;
+      border-radius: 50%;
+      animation: typing 1.2s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
     }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>NutritionAI</h1>
-  <p>Analyse protéique HBV / LBV — Journal alimentaire</p>
+  <div>
+    <h1>NutritionAI</h1>
+    <p>Analyse protéique HBV / LBV — Néphrologie clinique</p>
+  </div>
+  <button class="btn-home" onclick="resetToHome()">↺ Nouvelle analyse</button>
 </header>
 
+<!-- Step indicator -->
+<div class="steps-bar">
+  <div class="steps-inner">
+    <div class="step-item" id="si-1">
+      <div class="step-circle">1</div>
+      <span class="step-label">Patient</span>
+    </div>
+    <div class="step-connector" id="sc-1"></div>
+    <div class="step-item" id="si-2">
+      <div class="step-circle">2</div>
+      <span class="step-label">Journal</span>
+    </div>
+    <div class="step-connector" id="sc-2"></div>
+    <div class="step-item" id="si-3">
+      <div class="step-circle">3</div>
+      <span class="step-label">Validation</span>
+    </div>
+    <div class="step-connector" id="sc-3"></div>
+    <div class="step-item" id="si-4">
+      <div class="step-circle">4</div>
+      <span class="step-label">Résultats</span>
+    </div>
+  </div>
+</div>
+
 <main>
-  <div class="card">
-    <h2>Données patient</h2>
-    <div style="margin-bottom: 20px;">
-      <label for="patient">Description clinique du patient</label>
-      <textarea id="patient" style="min-height: 120px;" placeholder="Ex: Femme, 65 ans, 58 kg, taille 162 cm, insuffisance rénale chronique stade 3, dialyse 3x/semaine..."></textarea>
-    </div>
-    <div>
-      <label for="journal">Journal alimentaire</label>
-      <textarea id="journal" placeholder="Collez ici le journal alimentaire du patient...
-Ex:
-Petit-déjeuner : banane, pain noir x2, fromage blanc
-Déjeuner : salade de légumes, riz 2 cuillères, thon / bœuf / poisson
-..."></textarea>
-    </div>
-  </div>
 
-  <button class="primary" id="analyzeBtn" onclick="analyze()">Analyser le journal</button>
-
-  <div class="error-box" id="errorBox"></div>
-
-  <div class="loading" id="loading">
-    <div class="spinner"></div>
-    <p>Analyse en cours — recherche des valeurs nutritionnelles et calcul des scénarios...</p>
-  </div>
-
-  <div class="result" id="result">
+  <!-- ═══════════════════════════════════════════════
+       STEP 1 — Patient
+  ═══════════════════════════════════════════════ -->
+  <div class="step-panel visible" id="step-1">
     <div class="card">
-      <div class="conclusion-prealable">
-        <h3>Analyse clinique patient</h3>
-        <p id="conclusionPrealable"></p>
+      <div class="card-title">Profil patient</div>
+
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="btn-auto" onclick="setPatientMode('auto')">Analyse automatique</button>
+        <button class="toggle-btn" id="btn-manual" onclick="setPatientMode('manual')">Cible manuelle</button>
       </div>
-      <div class="conclusion-box">
-        <h3>✓ Conclusion clinique finale</h3>
-        <p id="conclusionFinale"></p>
+
+      <!-- Auto mode -->
+      <div id="mode-auto">
+        <div style="margin-bottom: 18px;">
+          <label for="patientDesc">Description clinique du patient</label>
+          <textarea id="patientDesc" style="min-height: 110px;"
+            placeholder="Ex: Femme, 65 ans, 58 kg, taille 162 cm, insuffisance rénale chronique stade 3, dialyse 3x/semaine..."></textarea>
+        </div>
       </div>
-      <details>
-        <summary>Voir l'analyse complète (calculs détaillés)</summary>
-        <div class="full-text" id="fullText"></div>
-      </details>
+
+      <!-- Manual mode -->
+      <div id="mode-manual" style="display:none;">
+        <div class="row-2" style="margin-bottom: 18px;">
+          <div>
+            <label for="manualWeight">Poids de référence (kg)</label>
+            <input type="number" id="manualWeight" min="30" max="200" step="0.1"
+              placeholder="Ex: 62" oninput="updateManualTotal()">
+          </div>
+          <div>
+            <label for="manualGperKg">Cible protéique (g/kg/jour)</label>
+            <input type="number" id="manualGperKg" min="0.3" max="3" step="0.1"
+              placeholder="Ex: 1.2" oninput="updateManualTotal()">
+          </div>
+        </div>
+        <div class="manual-total" id="manualTotal">
+          Total cible journalière : — g/jour
+        </div>
+      </div>
+
+      <!-- Patient result (auto) -->
+      <div id="patientResult" style="display:none; margin-top: 18px;">
+        <div class="box-blue">
+          <div class="box-title">Analyse clinique patient</div>
+          <div class="box-body" id="patientAnalysisText"></div>
+        </div>
+        <div class="patient-tags" id="patientTags"></div>
+
+        <div style="margin-top: 14px;">
+          <button class="btn-danger-outline" onclick="relancePatient()">↺ Relancer l'analyse</button>
+        </div>
+      </div>
+
+      <div class="error-box" id="err-1"></div>
+      <div class="loading-block" id="load-1">
+        <div class="spinner"></div>
+        <p>Analyse du profil patient en cours…</p>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="btn-step1-next" onclick="analyzePatient()">Suivant →</button>
+      </div>
     </div>
   </div>
+
+  <!-- ═══════════════════════════════════════════════
+       STEP 2 — Journal
+  ═══════════════════════════════════════════════ -->
+  <div class="step-panel" id="step-2">
+    <div class="card">
+      <div class="card-title">Journal alimentaire</div>
+      <div style="margin-bottom: 4px;">
+        <label for="journalText">Collez le journal alimentaire du patient</label>
+        <textarea id="journalText" style="min-height: 180px;"
+          placeholder="Ex:
+Petit-déjeuner: banane, pain noir x2, fromage blanc
+Déjeuner: salade de légumes, riz 2 cuillères, thon / בשר בקר / דג
+Dîner: yaourt, pain complet, fromage...
+
+(Les options séparées par / ou par או seront traitées comme alternatives)"></textarea>
+      </div>
+
+      <div class="error-box" id="err-2"></div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="goToStep(1)">← Retour</button>
+        <button class="btn-primary" onclick="submitJournal()">Valider le journal →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       STEP 3 — Validation
+  ═══════════════════════════════════════════════ -->
+  <div class="step-panel" id="step-3">
+    <div class="card">
+      <div class="card-title">Validation du journal</div>
+
+      <div class="loading-block" id="load-3">
+        <div class="spinner"></div>
+        <p>Génération d'un exemple d'interprétation…</p>
+      </div>
+
+      <div id="validationContent" style="display:none;">
+        <details style="margin-bottom:16px;">
+          <summary>Journal alimentaire saisi</summary>
+          <div class="collapsible-body full-text" id="journalRecap"></div>
+        </details>
+
+        <p style="font-size:14px; color:#4a5568; margin-bottom:14px;">
+          Voici comment le journal sera interprété (un scénario parmi les alternatives possibles) :
+        </p>
+        <div class="box-gray">
+          <div class="box-title">Scénario retenu</div>
+          <div class="box-body" id="scenarioText"></div>
+        </div>
+
+        <div style="margin-top: 20px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+          <button class="btn-success" onclick="launchAnalysis()">✓ Correct — Lancer l'analyse</button>
+          <button class="btn-danger-outline" id="btn-incorrect" onclick="toggleCorrection()">✗ Ce n'est pas correct</button>
+        </div>
+
+        <div class="correction-area" id="correctionArea">
+          <label style="margin-top:16px;" for="correctionText">Décrivez la correction :</label>
+          <textarea id="correctionText" style="min-height: 90px;"
+            placeholder="Ex: Le thon et le bœuf ne sont pas des alternatives, ce sont deux repas distincts..."></textarea>
+          <div class="btn-row">
+            <button class="btn-primary" onclick="relanceValidation()">Relancer la validation</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="error-box" id="err-3"></div>
+
+      <div class="btn-row" id="val-back-row">
+        <button class="btn-secondary" onclick="goToStep(2)">← Retour</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       STEP 4 — Results
+  ═══════════════════════════════════════════════ -->
+  <div class="step-panel" id="step-4">
+    <div class="card">
+      <div class="card-title">Résultats de l'analyse</div>
+
+      <div class="loading-block" id="load-4">
+        <div class="spinner"></div>
+        <p>Analyse complète en cours — recherche des valeurs nutritionnelles et calcul des scénarios…</p>
+      </div>
+
+      <div id="resultsContent" style="display:none;">
+        <!-- Patient context -->
+        <div class="box-blue">
+          <div class="box-title">Profil patient</div>
+          <div class="box-body" id="res-patient-context"></div>
+        </div>
+
+        <!-- Conclusion finale -->
+        <div class="box-green">
+          <div class="box-title">✓ Conclusion clinique finale</div>
+          <div class="box-body" id="res-conclusion-finale"></div>
+        </div>
+
+        <!-- Table -->
+        <details>
+          <summary>Tableau nutritionnel</summary>
+          <div class="collapsible-body">
+            <div class="md-table-wrap" id="res-table"></div>
+          </div>
+        </details>
+
+        <!-- Full response -->
+        <details>
+          <summary>Analyse complète (calculs détaillés)</summary>
+          <div class="collapsible-body">
+            <div class="full-text" id="res-full"></div>
+          </div>
+        </details>
+
+        <!-- Divider + Chat -->
+        <hr class="divider">
+        <div class="chat-title">Questions de suivi</div>
+        <div class="chat-subtitle" id="chatSubtitle">Posez jusqu'à 4 questions sur cette analyse.</div>
+
+        <div class="chat-history" id="chatHistory"></div>
+
+        <div id="chatInputArea">
+          <div class="chat-input-row">
+            <textarea id="chatInput" style="min-height:60px;"
+              placeholder="Votre question sur l'analyse…"
+              onkeydown="chatKeydown(event)"></textarea>
+            <button class="btn-primary" onclick="sendChat()">Envoyer</button>
+          </div>
+          <div class="chat-counter" id="chatCounter">0 / 4 questions utilisées</div>
+        </div>
+
+        <div class="chat-limit-msg" id="chatLimitMsg">
+          Limite de 4 questions atteinte. Pour une nouvelle analyse, rechargez la page.
+        </div>
+      </div>
+
+      <div class="error-box" id="err-4"></div>
+    </div>
+  </div>
+
 </main>
 
 <script>
-  async function analyze() {
-    const patient = document.getElementById('patient').value.trim();
-    const journal = document.getElementById('journal').value.trim();
+  // ── State ──────────────────────────────────────────────────────────────────
+  let patientContext = "";
+  let journalText = "";
+  let analysisContext = "";
+  let chatHistory = [];
+  let chatCount = 0;
+  const MAX_CHAT = 4;
 
-    if (!patient) {
-      showError('Veuillez saisir la description clinique du patient.');
+  let patientMode = "auto"; // "auto" | "manual"
+
+  // ── Step navigation ────────────────────────────────────────────────────────
+  function goToStep(n) {
+    [1, 2, 3, 4].forEach(i => {
+      document.getElementById("step-" + i).classList.toggle("visible", i === n);
+    });
+    updateStepIndicator(n);
+  }
+
+  function updateStepIndicator(current) {
+    [1, 2, 3, 4].forEach(i => {
+      const si = document.getElementById("si-" + i);
+      si.classList.remove("active", "done");
+      if (i < current) si.classList.add("done");
+      else if (i === current) si.classList.add("active");
+
+      if (i < 4) {
+        const sc = document.getElementById("sc-" + i);
+        sc.classList.toggle("done", i < current);
+      }
+    });
+  }
+
+  // ── Patient mode toggle ────────────────────────────────────────────────────
+  function setPatientMode(mode) {
+    patientMode = mode;
+    document.getElementById("btn-auto").classList.toggle("active", mode === "auto");
+    document.getElementById("btn-manual").classList.toggle("active", mode === "manual");
+    document.getElementById("mode-auto").style.display = mode === "auto" ? "block" : "none";
+    document.getElementById("mode-manual").style.display = mode === "manual" ? "block" : "none";
+    document.getElementById("patientResult").style.display = "none";
+    hideError("err-1");
+  }
+
+  function updateManualTotal() {
+    const w = parseFloat(document.getElementById("manualWeight").value);
+    const g = parseFloat(document.getElementById("manualGperKg").value);
+    const el = document.getElementById("manualTotal");
+    if (!isNaN(w) && !isNaN(g) && w > 0 && g > 0) {
+      const total = (w * g).toFixed(1);
+      el.textContent = "Total cible journalière : " + total + " g/jour";
+    } else {
+      el.textContent = "Total cible journalière : — g/jour";
+    }
+  }
+
+  // ── Step 1: Analyze patient ────────────────────────────────────────────────
+  async function analyzePatient() {
+    hideError("err-1");
+
+    if (patientMode === "manual") {
+      const w = parseFloat(document.getElementById("manualWeight").value);
+      const g = parseFloat(document.getElementById("manualGperKg").value);
+      if (isNaN(w) || isNaN(g) || w <= 0 || g <= 0) {
+        showError("err-1", "Veuillez renseigner le poids de référence et la cible protéique.");
+        return;
+      }
+      const total = (w * g).toFixed(1);
+      patientContext = "Poids de référence retenu : " + w + " kg\nCible protéique : " + g + " g/kg/jour\nCible totale journalière : " + total + " g/jour";
+      goToStep(2);
       return;
     }
-    if (!journal) {
-      showError('Veuillez saisir le journal alimentaire.');
+
+    // Auto mode
+    const desc = document.getElementById("patientDesc").value.trim();
+    if (!desc) {
+      showError("err-1", "Veuillez saisir la description clinique du patient.");
       return;
     }
 
-    const btn = document.getElementById('analyzeBtn');
-    const loading = document.getElementById('loading');
-    const result = document.getElementById('result');
-    const errorBox = document.getElementById('errorBox');
-
-    btn.disabled = true;
-    loading.style.display = 'block';
-    result.style.display = 'none';
-    errorBox.style.display = 'none';
+    setLoading("load-1", true);
+    setLoading("btn-step1-next", true, true);
 
     try {
-      const response = await fetch('/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patient, journal })
+      const resp = await fetch("/analyze-patient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patient: desc })
       });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || "Erreur serveur");
 
-      const data = await response.json();
+      // Build patient context string
+      patientContext = data.analysis || "";
 
-      if (!response.ok) {
-        throw new Error(data.detail || 'Erreur serveur');
+      // Show result
+      document.getElementById("patientAnalysisText").textContent = data.analysis || "";
+
+      const tags = document.getElementById("patientTags");
+      tags.innerHTML = "";
+      if (data.weight_kg) {
+        tags.innerHTML += '<span class="patient-tag">Poids retenu : ' + data.weight_kg + ' kg</span>';
       }
+      if (data.target_g_per_kg) {
+        tags.innerHTML += '<span class="patient-tag">Cible : ' + data.target_g_per_kg + ' g/kg/j</span>';
+      }
+      if (data.total_target_g) {
+        tags.innerHTML += '<span class="patient-tag">Total : ' + data.total_target_g + ' g/j</span>';
+      }
+      document.getElementById("patientResult").style.display = "block";
 
-      document.getElementById('conclusionPrealable').textContent = data.conclusion_prealable || 'Non disponible';
-      document.getElementById('conclusionFinale').textContent = data.conclusion_finale || 'Non disponible';
-      document.getElementById('fullText').textContent = data.full_response;
-      result.style.display = 'block';
+      // Let user read the result and confirm before advancing
+      const btn = document.getElementById("btn-step1-next");
+      btn.textContent = "Continuer vers le journal →";
+      btn.onclick = () => goToStep(2);
+
     } catch (err) {
-      showError('Erreur : ' + err.message);
+      showError("err-1", "Erreur : " + err.message);
     } finally {
-      btn.disabled = false;
-      loading.style.display = 'none';
+      setLoading("load-1", false);
+      setLoading("btn-step1-next", false, true);
     }
   }
 
-  function showError(msg) {
-    const box = document.getElementById('errorBox');
-    box.textContent = msg;
-    box.style.display = 'block';
+  async function relancePatient() {
+    const desc = document.getElementById("patientDesc").value.trim();
+    hideError("err-1");
+    document.getElementById("patientResult").style.display = "none";
+    setLoading("load-1", true);
+    setLoading("btn-step1-next", true, true);
+
+    try {
+      const resp = await fetch("/analyze-patient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patient: desc })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || "Erreur serveur");
+
+      patientContext = data.analysis || "";
+      document.getElementById("patientAnalysisText").textContent = data.analysis || "";
+
+      const tags = document.getElementById("patientTags");
+      tags.innerHTML = "";
+      if (data.weight_kg) tags.innerHTML += '<span class="patient-tag">Poids retenu : ' + data.weight_kg + ' kg</span>';
+      if (data.target_g_per_kg) tags.innerHTML += '<span class="patient-tag">Cible : ' + data.target_g_per_kg + ' g/kg/j</span>';
+      if (data.total_target_g) tags.innerHTML += '<span class="patient-tag">Total : ' + data.total_target_g + ' g/j</span>';
+      document.getElementById("patientResult").style.display = "block";
+
+      const btn = document.getElementById("btn-step1-next");
+      btn.textContent = "Continuer vers le journal →";
+      btn.onclick = () => goToStep(2);
+
+    } catch (err) {
+      showError("err-1", "Erreur : " + err.message);
+    } finally {
+      setLoading("load-1", false);
+      setLoading("btn-step1-next", false, true);
+    }
   }
+
+  // ── Step 2: Submit journal ─────────────────────────────────────────────────
+  function submitJournal() {
+    hideError("err-2");
+    const j = document.getElementById("journalText").value.trim();
+    if (!j) {
+      showError("err-2", "Veuillez saisir le journal alimentaire.");
+      return;
+    }
+    journalText = j;
+    goToStep(3);
+    validateJournal();
+  }
+
+  // ── Step 3: Validate journal ───────────────────────────────────────────────
+  async function validateJournal(correction) {
+    hideError("err-3");
+    document.getElementById("validationContent").style.display = "none";
+    setLoading("load-3", true);
+
+    try {
+      const body = { journal: journalText };
+      if (correction) body.correction = correction;
+
+      const resp = await fetch("/validate-journal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || "Erreur serveur");
+
+      document.getElementById("scenarioText").textContent = data.scenario || "";
+      document.getElementById("journalRecap").textContent = journalText;
+      document.getElementById("validationContent").style.display = "block";
+
+    } catch (err) {
+      showError("err-3", "Erreur : " + err.message);
+    } finally {
+      setLoading("load-3", false);
+    }
+  }
+
+  function toggleCorrection() {
+    const area = document.getElementById("correctionArea");
+    const isOpen = area.style.display === "block";
+    area.style.display = isOpen ? "none" : "block";
+    document.getElementById("btn-incorrect").textContent = isOpen
+      ? "✗ Ce n'est pas correct"
+      : "Annuler";
+  }
+
+  async function relanceValidation() {
+    const correction = document.getElementById("correctionText").value.trim();
+    if (!correction) {
+      showError("err-3", "Veuillez décrire la correction avant de relancer.");
+      return;
+    }
+    // Hide correction area
+    document.getElementById("correctionArea").style.display = "none";
+    document.getElementById("btn-incorrect").textContent = "✗ Ce n'est pas correct";
+    await validateJournal(correction);
+  }
+
+  // ── Step 4: Launch full analysis ───────────────────────────────────────────
+  async function launchAnalysis() {
+    goToStep(4);
+    hideError("err-4");
+    document.getElementById("resultsContent").style.display = "none";
+    setLoading("load-4", true);
+
+    // Check if there's a correction to pass
+    const correctionEl = document.getElementById("correctionText");
+    const correction = correctionEl ? correctionEl.value.trim() : "";
+
+    try {
+      const resp = await fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          journal: journalText,
+          patient_context: patientContext,
+          correction: correction
+        })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || "Erreur serveur");
+
+      // Patient context box
+      document.getElementById("res-patient-context").textContent = patientContext;
+
+      // Conclusion finale
+      document.getElementById("res-conclusion-finale").textContent =
+        data.conclusion_finale || "Non disponible";
+
+      // Table
+      const tableEl = document.getElementById("res-table");
+      if (data.table_markdown) {
+        tableEl.innerHTML = renderMarkdownTable(data.table_markdown);
+      } else {
+        tableEl.textContent = "Tableau non disponible dans cette réponse.";
+      }
+
+      // Full response
+      document.getElementById("res-full").textContent = data.full_response || "";
+
+      // Build analysis context for chat
+      analysisContext = (patientContext || "") + "\n\n" +
+        (data.conclusion_prealable || "") + "\n\n" +
+        (data.conclusion_finale || "") + "\n\n" +
+        (data.full_response || "");
+
+      document.getElementById("resultsContent").style.display = "block";
+
+    } catch (err) {
+      showError("err-4", "Erreur : " + err.message);
+    } finally {
+      setLoading("load-4", false);
+    }
+  }
+
+  // ── Chat ───────────────────────────────────────────────────────────────────
+  function chatKeydown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendChat();
+    }
+  }
+
+  async function sendChat() {
+    if (chatCount >= MAX_CHAT) return;
+
+    const input = document.getElementById("chatInput");
+    const question = input.value.trim();
+    if (!question) return;
+
+    input.value = "";
+    hideError("err-4");
+
+    appendBubble(question, "user");
+    chatHistory.push({ role: "user", content: question });
+
+    input.disabled = true;
+    document.querySelector("#chatInputArea .btn-primary").disabled = true;
+
+    const loadingBubble = appendLoadingBubble();
+
+    try {
+      const resp = await fetch("/chat-stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          analysis_context: analysisContext,
+          history: chatHistory.slice(0, -1),
+          question: question
+        })
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json();
+        throw new Error(errData.detail || "Erreur serveur");
+      }
+
+      loadingBubble.remove();
+      const assistantBubble = appendEmptyBubble("assistant");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let fullAnswer = "";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (raw === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed.error) throw new Error(parsed.error);
+            if (parsed.content) {
+              fullAnswer += parsed.content;
+              assistantBubble.textContent = fullAnswer;
+              assistantBubble.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+          } catch(e) { /* ignore partial JSON */ }
+        }
+      }
+
+      chatHistory.push({ role: "assistant", content: fullAnswer });
+      chatCount++;
+      document.getElementById("chatCounter").textContent = chatCount + " / " + MAX_CHAT + " questions utilisées";
+
+      if (chatCount >= MAX_CHAT) {
+        document.getElementById("chatInputArea").style.display = "none";
+        document.getElementById("chatLimitMsg").style.display = "block";
+        document.getElementById("chatSubtitle").textContent = "Limite de questions atteinte.";
+      }
+
+    } catch (err) {
+      loadingBubble.remove();
+      showError("err-4", "Erreur chat : " + err.message);
+    } finally {
+      input.disabled = false;
+      const sendBtn = document.querySelector("#chatInputArea .btn-primary");
+      if (sendBtn) sendBtn.disabled = false;
+    }
+  }
+
+  function appendBubble(text, role) {
+    const history = document.getElementById("chatHistory");
+    const div = document.createElement("div");
+    div.className = "bubble bubble-" + role;
+    div.textContent = text;
+    history.appendChild(div);
+    div.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function appendEmptyBubble(role) {
+    const history = document.getElementById("chatHistory");
+    const div = document.createElement("div");
+    div.className = "bubble bubble-" + role;
+    history.appendChild(div);
+    return div;
+  }
+
+  function appendLoadingBubble() {
+    const history = document.getElementById("chatHistory");
+    const div = document.createElement("div");
+    div.className = "bubble bubble-assistant bubble-loading";
+    div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+    history.appendChild(div);
+    div.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    return div;
+  }
+
+  // ── Markdown table renderer ────────────────────────────────────────────────
+  function renderMarkdownTable(markdown) {
+    const lines = markdown.trim().split("\n").filter(l => l.trim());
+    if (lines.length < 2) return "<pre>" + escHtml(markdown) + "</pre>";
+
+    let html = '<table class="md-table"><thead><tr>';
+
+    // Header row
+    const headerCells = lines[0].split("|").map(c => c.trim()).filter(c => c !== "");
+    headerCells.forEach(cell => {
+      html += "<th>" + escHtml(cell) + "</th>";
+    });
+    html += "</tr></thead><tbody>";
+
+    // Skip separator line (line[1])
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*[\|:\-\s]+\s*$/.test(line)) continue; // skip separator-like lines
+      const cells = line.split("|").map(c => c.trim()).filter((c, idx, arr) => {
+        // Filter leading/trailing empty from pipe delimiters
+        if (idx === 0 && c === "") return false;
+        if (idx === arr.length - 1 && c === "") return false;
+        return true;
+      });
+      if (cells.length === 0) continue;
+      html += "<tr>";
+      cells.forEach(cell => {
+        html += "<td>" + escHtml(cell) + "</td>";
+      });
+      html += "</tr>";
+    }
+
+    html += "</tbody></table>";
+    return html;
+  }
+
+  function escHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // ── Loading helpers ────────────────────────────────────────────────────────
+  function setLoading(id, on, isBtn) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (isBtn) {
+      el.disabled = on;
+    } else {
+      el.style.display = on ? "block" : "none";
+    }
+  }
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+
+  function hideError(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  }
+
+  // ── Home / reset ───────────────────────────────────────────────────────────
+  function resetToHome() {
+    if (!confirm("Recommencer une nouvelle analyse ? Les données actuelles seront perdues.")) return;
+    patientContext = "";
+    journalText = "";
+    analysisContext = "";
+    chatHistory = [];
+    chatCount = 0;
+
+    document.getElementById("patientDesc").value = "";
+    document.getElementById("journalText").value = "";
+    document.getElementById("patientResult").style.display = "none";
+    document.getElementById("chatHistory").innerHTML = "";
+    document.getElementById("chatCounter").textContent = "0 / " + MAX_CHAT + " questions utilisées";
+    document.getElementById("chatInputArea").style.display = "block";
+    document.getElementById("chatLimitMsg").style.display = "none";
+
+    const btn = document.getElementById("btn-step1-next");
+    btn.textContent = "Suivant →";
+    btn.onclick = analyzePatient;
+
+    hideError("err-1"); hideError("err-2"); hideError("err-3"); hideError("err-4");
+    goToStep(1);
+  }
+
+  // Init step indicator
+  updateStepIndicator(1);
 </script>
 
 </body>
