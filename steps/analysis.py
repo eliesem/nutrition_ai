@@ -1,7 +1,7 @@
 """
 Étape 4 — Analyse nutritionnelle complète
 Prompt : calcul HBV/LBV, 3 scénarios, moyenne, conclusions
-Extracteurs : conclusion préalable, conclusion finale, tableau nutritionnel
+Extracteurs : conclusion finale, tableau nutritionnel
 """
 
 from core.extract import extract_between
@@ -96,11 +96,6 @@ un fruit ou légume mentionné seul = 1 unité / portion standard
 
 toute portion implicite doit être explicitée avant les calculs
 
-MARQUEUR OBLIGATOIRE — à placer immédiatement après le rappel de la cible clinique :
-###CONCLUSION_PREALABLE_START###
-[Écrire ici uniquement la conclusion clinique préalable : poids retenu, cible g/kg/jour, cible totale g/jour, et toute hypothèse clinique pertinente. Maximum 5 phrases.]
-###CONCLUSION_PREALABLE_END###
-
 Analyse alimentaire
 Étape 1 — Extraction
 
@@ -135,12 +130,14 @@ Ne pas créer de tableau séparé pour chaque scénario.
 
 Étape 4 — Calcul détaillé obligatoire
 
-Pour chaque scénario, afficher explicitement l'addition complète pour le total, HBV et LBV séparément.
-Ne jamais afficher un total sans montrer l'addition complète.
+Pour chaque scénario, lister CHAQUE occurrence de chaque aliment séparément, repas par repas — un même aliment consommé à plusieurs repas différents doit apparaître autant de fois qu'il est consommé.
+Afficher l'addition complète pour le total, puis pour HBV et LBV séparément, en listant chaque ligne individuellement.
 
 Étape 5 — Vérification mathématique
 
-Après chaque scénario : recalculer, vérifier HBV + LBV = total protéines, corriger si incohérence, comparer à la cible patient en g/jour et en % de la cible atteinte.
+Après chaque scénario : additionner toutes les lignes HBV, additionner toutes les lignes LBV, vérifier que HBV + LBV = total protéines exactement.
+Si HBV + LBV ≠ total, identifier quelle occurrence manque et corriger avant de continuer.
+Comparer à la cible patient en g/jour et en % de la cible atteinte.
 
 Étape 6 — Moyenne
 
@@ -150,10 +147,9 @@ Comparer cette moyenne à la cible protéique journalière du patient.
 
 Format de sortie obligatoire
 
-1️⃣ Rappel de la cible clinique patient (avec le marqueur CONCLUSION_PREALABLE)
-2️⃣ Tableau nutritionnel unique (entre les marqueurs TABLE_START / TABLE_END)
-3️⃣ Scénarios journaliers (3 scénarios avec calculs détaillés)
-4️⃣ Résumé final
+1️⃣ Tableau nutritionnel unique (entre les marqueurs TABLE_START / TABLE_END)
+2️⃣ Scénarios journaliers (3 scénarios avec calculs détaillés)
+3️⃣ Résumé final
 
 Consignes supplémentaires
 
@@ -165,41 +161,22 @@ Toujours distinguer clairement HBV et LBV.
 
 MARQUEUR FINAL OBLIGATOIRE — dernière chose dans ta réponse :
 ###CONCLUSION_FINALE_START###
-[Écrire ici uniquement la conclusion clinique finale : moyenne protéines/jour, ratio HBV/LBV moyen, comparaison avec la cible, et recommandation clinique courte. Maximum 5 phrases.]
+Moyenne des apports protéiques : X g/jour (objectif : X g/jour, soit X%)
+HBV : X g/jour (X%)
+LBV : X g/jour (X%)
+
+[Recommandation clinique — 5 phrases maximum. Raisonne de manière globale et cohérente : les deux objectifs (quantité totale et ratio HBV/LBV) sont liés, chaque conseil doit les servir simultanément.
+- Si apport < objectif ET ratio HBV trop élevé : augmenter des aliments LBV (pas HBV), ce qui améliore les deux à la fois.
+- Si apport < objectif ET ratio HBV correct : augmenter des aliments HBV ou LBV selon le ratio actuel.
+- Si apport > objectif ET ratio HBV trop élevé : réduire des aliments HBV, ce qui améliore les deux à la fois.
+- Si apport > objectif ET ratio correct : réduire n'importe quel aliment.
+Chaque conseil doit nommer un aliment précis du journal et le repas concerné. Ne pas donner de conseils contradictoires.]
 ###CONCLUSION_FINALE_END###"""
 
 
 def extract_conclusions(text: str) -> dict:
-    def _extract_before_end(txt, end_marker, fallback_headings):
-        end = txt.find(end_marker)
-        if end == -1:
-            return None
-        best_start = -1
-        for heading in fallback_headings:
-            idx = txt.rfind(heading, 0, end)
-            if idx != -1 and idx > best_start:
-                best_start = idx + len(heading)
-        if best_start == -1:
-            return None
-        return txt[best_start:end].strip()
-
-    prealable = extract_between(text, "###CONCLUSION_PREALABLE_START###", "###CONCLUSION_PREALABLE_END###")
-    if not prealable:
-        prealable = _extract_before_end(text, "###CONCLUSION_PREALABLE_END###", [
-            "**E. Conclusion clinique préalable**\n",
-            "E. Conclusion clinique préalable\n",
-            "Conclusion clinique préalable\n",
-        ])
-
     finale = extract_between(text, "###CONCLUSION_FINALE_START###", "###CONCLUSION_FINALE_END###")
-    if not finale:
-        finale = _extract_before_end(text, "###CONCLUSION_FINALE_END###", [
-            "**Conclusion clinique**\n",
-            "Conclusion clinique\n",
-            "conclusion clinique courte\n",
-        ])
-
-    return {"prealable": prealable, "finale": finale}
+    return {"finale": finale}
 
 
 def extract_table(text: str):

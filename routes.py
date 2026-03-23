@@ -32,6 +32,7 @@ async def analyze_patient(request: PatientRequest, http_request: Request):
             model="gpt-4.1-mini",
             tools=[{"type": "web_search"}],
             input=prompt,
+            temperature=0.1,
         )
         full_text = response.output_text
         target = extract_patient_target(full_text)
@@ -55,6 +56,7 @@ async def validate_journal(request: ValidationRequest, http_request: Request):
         response = client.responses.create(
             model="gpt-4.1-mini",
             input=prompt,
+            temperature=0.1,
         )
         full_text = response.output_text
         scenario = extract_scenario(full_text)
@@ -75,12 +77,12 @@ async def analyze(request: AnalysisRequest, http_request: Request):
             model="gpt-4.1-mini",
             tools=[{"type": "web_search"}],
             input=prompt,
+            temperature=0.1,
         )
         full_text = response.output_text
         conclusions = extract_conclusions(full_text)
         table = extract_table(full_text)
         return {
-            "conclusion_prealable": conclusions["prealable"],
             "conclusion_finale": conclusions["finale"],
             "table_markdown": table,
             "full_response": full_text,
